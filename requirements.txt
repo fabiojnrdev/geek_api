@@ -1,3 +1,26 @@
-fastapi
-uvicorn
-sqlmodel
+# Core Framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+
+# Database & ORM
+sqlmodel==0.0.22
+psycopg2-binary==2.9.9
+
+# Security & Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.9
+
+# Validation & Settings
+pydantic==2.9.0
+pydantic-settings==2.5.2
+
+# HTTP Client (for tests)
+httpx==0.27.0
+
+# Testing
+pytest==8.3.0
+pytest-cov==4.1.0
+
+# Development
+python-dotenv==1.0.0
