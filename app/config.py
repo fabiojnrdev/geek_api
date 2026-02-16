@@ -21,4 +21,8 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False
     )
-    
+
+    @lru_cache()
+    def get_settings() -> "Settings":
+        return Settings()
+    Settings = get_settings()
