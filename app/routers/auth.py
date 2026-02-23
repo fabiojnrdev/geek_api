@@ -236,3 +236,49 @@ def create_user(session: Session, username: str, email: str, password: str) -> U
     session.commit()
     session.refresh(new_user)
     return new_user
+def create_access_token_for_user(user: User) -> str:
+    """ Cria um token de acesso JWT para um usuário específico.
+    
+    Args:
+        user: Usuário para o qual o token será criado
+        
+    Returns:
+        Token JWT como string
+    """
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    return create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+def authenticate_and_get_token(session: Session, username: str, password: str) -> str:
+    """ Autentica um usuário e retorna um token de acesso JWT.
+    
+    Args:
+        session: Sessão do banco de dados
+        username: Username do usuário
+        password: Senha em texto plano do usuário
+        
+    Returns:
+        Token JWT se autenticado, None caso contrário
+    """
+    user = authenticate_user(session, username, password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Username ou senha incorretos",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return create_access_token_for_user(user)
+def register_user(session: Session, username: str, email: str, password: str) -> User:
+    """ Registra um novo usuário e retorna o usuário criado.
+    
+    Args:
+        session: Sessão do banco de dados
+        username: Username do novo usuário
+        email: Email do novo usuário
+        password: Senha em texto plano do novo usuário
+        
+    Returns:
+        User criado
+    """
+    return create_user(session, username, email, password)
+

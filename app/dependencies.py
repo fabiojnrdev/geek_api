@@ -208,3 +208,96 @@ def validate_unique_category_slug(slug: str, session: Session = Depends(get_sess
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Já existe uma categoria com o slug '{slug}'"
         )
+    
+def validate_active_user(current_user: User = Depends(get_current_active_user)) -> User:
+    """ Dependência para validar se o usuário autenticado está ativo.
+    
+    Uso:
+        @app.get("/profile")
+        def read_profile(current_user: User = Depends(validate_active_user)):
+            return current_user
+    Args:
+    current_user: Usuário autenticado
+    Returns:
+    User se ativo
+    Raises:
+    HTTPException 400: Se usuário estiver inativo
+    """
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usuário inativo"
+        )
+    return current_user
+# Funções utilitárias
+def generate_slug(name: str) -> str:
+    """ Gera um slug URL-friendly a partir de um texto.
+    
+    Args:
+        text: Texto original
+        
+    Returns:
+        Slug formatado (lowercase, sem acentos, hífens)
+        
+    Examples:
+        >>> generate_slug("Animes e Mangás")
+        'animes-e-mangas'
+    """
+    import re
+    import unicodedata
+    # Remove acentos
+    slug = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode('ascii')
+    # Lowercase e substitui espaços por hífens
+    text = slug.lower()
+    text = re.sub(r'[^a-z0-9]+', '-', text)
+    # Remove caracteres especiais
+    text = re.sub(r'-+', '-', text)
+    text = text.strip('-')
+    return text
+# Formatação de preços
+
+def format_price(price: float) -> str:
+    """
+    Formata um preço para exibição em Real brasileiro.
+    
+    Args:
+        price: Preço em float
+        
+    Returns:
+        String formatada (ex: "R$ 299,90")
+    """
+    return f"R$ {price:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+# Response Helpers
+def paginated_response(items: list, total: int, skip: int, limit: int) -> dict:
+    """
+    Cria uma resposta paginada padronizada.
+    
+    Args:
+        items: Lista de itens da página atual
+        total: Total de itens no banco
+        skip: Número de itens pulados
+        limit: Limite de itens por página
+        
+    Returns:
+        Dicionário com estrutura de paginação
+        
+    Example:
+        {
+            "items": [...],
+            "total": 150,
+            "page": 2,
+            "pages": 15,
+            "per_page": 10
+        }
+    """
+    page = (skip // limit) + 1 if limit > 0 else 1
+    pages = (total + limit - 1) // limit if limit > 0 else 1
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "pages": pages,
+        "per_page": limit
+    }
