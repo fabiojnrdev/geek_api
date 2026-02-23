@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from app.database import get_session
-from routers.auth import get_current_active_user
+from app.auth import get_current_active_user
 from app.models import User, Category, Product
 
 def get_db():
