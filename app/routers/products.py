@@ -138,3 +138,53 @@ def search_products(
     ).limit()
     products = session.exec(statement).all()
     return products
+@router.get("/{product_id}", response_model=ProductResponse)
+def get_product(product: Product = Depends(get_product_or_404)):
+   """
+    Busca um produto por ID.
+    
+    **Path Parameters:**
+    - product_id: ID do produto
+    
+    **Retorna:**
+    - Produto com categoria completa
+    
+    **Erros:**
+    - 404: Produto não encontrado
+    
+    **Exemplo:**
+```
+    GET /api/products/1
+```
+    """
+   return product
+@router.get("franquia/{franquia}", response_model=List[ProductResponse])
+def get_products_by_franquia(
+   franquia: str,
+   limit: int = Query(20, ge=1, le=100),
+   session: Session = Depends(get_session)
+):
+   """
+    Lista produtos de uma franquia específica.
+    
+    **Path Parameters:**
+    - franquia: Nome da franquia (ex: "Naruto", "One Piece")
+    
+    **Query Parameters:**
+    - limit: Limite de resultados (default: 20, max: 100)
+    
+    **Exemplo:**
+```
+    GET /api/products/franquia/Naruto?limit=10
+```
+    
+    **Retorna:**
+    - Lista de produtos da franquia
+    """
+   statement = select(Product).where(
+      Product.franquia.ilke(f"%{franquia}%"),
+      Product.is_active == True
+    ).limit(limit)
+   
+   products = session.exec(statement).all()
+   return products
