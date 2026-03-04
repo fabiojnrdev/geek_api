@@ -44,16 +44,16 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description="""
-    🎮 **Geek Store API** - Sistema de gerenciamento de loja geek
+    🎮Geek Store API - Sistema de gerenciamento de loja geek
     
-    ## 📦 Funcionalidades
+    📦 Funcionalidades
     
-    * **Produtos**: CRUD completo com filtros avançados, busca e gestão de estoque
-    * **Categorias**: Organização de produtos por categorias (Animes, Games, Mangás, etc)
-    * **Autenticação**: Sistema JWT para admins
-    * **Estatísticas**: Dashboards e relatórios de produtos
+    Produtos: CRUD completo com filtros avançados, busca e gestão de estoque
+    Categorias: Organização de produtos por categorias (Animes, Games, Mangás, etc)
+    Autenticação: Sistema JWT para admins
+    Estatísticas: Dashboards e relatórios de produtos
     
-    ## 🔐 Autenticação
+    🔐 Autenticação
     
     Para acessar endpoints protegidos:
     1. Faça login em `/api/auth/login`
@@ -61,11 +61,9 @@ app = FastAPI(
     3. Clique em "Authorize" no topo da página
     4. Cole o token no formato: `Bearer {seu_token}`
     
-    ## 🚀 Links Úteis
+    🚀 Links Úteis
     
-    * [Documentação Interativa (Swagger)](/docs)
-    * [Documentação Alternativa (ReDoc)](/redoc)
-    * [GitHub](https://github.com/seu-usuario/geek-store)
+    [GitHub](https://github.com/fabiojnrdev/geek_api)
     """,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -100,9 +98,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins = settings.cors_origins,
-    allor_credentials=True,
+    allow_credentials=True,
     allow_methods=["*"],
-    allor_headers=["*"],
+    allow_headers=["*"],
 )
 
 # Request Timing
@@ -186,3 +184,75 @@ app.include_router(
 )
 
 # Root 
+
+@app.get("/", tags=["Root"])
+def root():
+    """
+    Endpoint raiz da API.
+    Retorna informações básicas e links úteis.
+    """
+    return {
+        "message":  "🎮 Bem-vindo à Geek Store API!",
+        "version": settings.app_version,
+        "docs": "/docs",
+        "redoc": "/redoc",
+        "openapi": "/openapi.json",
+        "endpoints": {
+            "auth": "/api/auth",
+            "categories": "/api/categories",
+            "products": "/api/products"
+        }
+    }
+@app.get("/health", tags=["Root"])
+def health_check():
+    """
+    Endpoint de health check.
+    Útil para monitoramento e load balancers.
+    """
+    return {
+        "status": "healthy",
+        "version": settings.app_version,
+        "database": "connected"
+    }
+@app.get("/api", tags=["Root"])
+def api_info():
+    # Informações sobre a API
+    return{
+        "name": settings.app_name,
+        "version": settings.app_version,
+        "description": "API para gerenciamento de loja geek",
+        "endpoints": {
+            "authentication": {
+                "register": "POST /api/auth/register",
+                "login": "POST /api/auth/login",
+                "me": "GET /api/auth/me"
+            },
+            "categories":{
+                "list": "GET /api/categories",
+                "create": "POST /api/categories",
+                "get": "GET /api/categories/{id}",
+                "update": "PUT /api/categories/{id}",
+                "delete": "DELETE /api/categories/{id}"
+            },
+            "products": {
+                "list": "GET /api/products",
+                "search": "GET /api/products/search",
+                "create": "POST /api/products",
+                "get": "GET /api/products/{id}",
+                "update": "PUT /api/products/{id}",
+                "delete": "DELETE /api/products/{id}",
+                "stock": "PATCH /api/products/{id}/stock",
+                "stats": "GET /api/products/stats/overview"
+            } 
+        }
+    }
+if __name__ == "__main__":
+    import uvicorn
+    
+    uvicorn.run(
+        "app.main,app",
+        host="0.0.0.0",
+        port=8000,
+        reload=settings.debug,
+        log_level="info"
+    )

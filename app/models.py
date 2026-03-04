@@ -1,58 +1,98 @@
+# app/models.py
+
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 from decimal import Decimal
 
-class User(SQLModel, table = True):
-    '''Modelo de usuário adminstrador. Gerencia autenticação e autorização ao acesso do painel admin'''
+
+# ============================================================================
+# USER MODEL (Admin)
+# ============================================================================
+
+class User(SQLModel, table=True):
+    """
+    Modelo de usuário administrador.
+    Gerencia autenticação e acesso ao painel admin.
+    """
     __tablename__ = "users"
+    
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True, min_length=3, max_length=50)
-    email: str = Field(unique=True, index=True, min_length=5, max_length=100)
+    email: str = Field(unique=True, index=True, max_length=255)
     hashed_password: str = Field(max_length=255)
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
-
-    def __repr__(self):
-        return f"<User(id={self.id}, username='{self.username}', email='{self.email}')>"
-# Classe de categoria
-class Category(SQLModel, table=True):
-    """Modelo de categoria dos produtos
-    Ex: Animes, Games, Mangás, etc.
-    """
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(unique=True, index= True, min_length=1, max_length=120)
-    description: Optional[str] = Field(default=None, max_length=255)
-    slug: str = Field(unique=True, index=True, min_length=1, max_length=120)
-    products: List["Produto"] = Relationship(back_populates="category")
     
     def __repr__(self):
-        return f"<Category(id={self.id}, name='{self.name}', slug='{self.slug}')>"
+        return f"<User {self.username}>"
 
-class Produto(SQLModel, table=True):
+
+# ============================================================================
+# CATEGORY MODEL
+# ============================================================================
+
+class Category(SQLModel, table=True):
+    """
+    Modelo de categorias de produtos.
+    Ex: Animes, Games, Mangás, Action Figures
+    """
+    __tablename__ = "categories"
+    
     id: Optional[int] = Field(default=None, primary_key=True)
-    nome: str = Field(unique=True, index=True, min_length=1, max_length=120)
+    name: str = Field(unique=True, index=True, min_length=2, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=500)
+    slug: str = Field(unique=True, index=True, max_length=100)
+    
+    # Relacionamento: uma categoria tem vários produtos
+    products: list["Product"] = Relationship(back_populates="category")
+    
+    def __repr__(self):
+        return f"<Category {self.name}>"
+
+
+# ============================================================================
+# PRODUCT MODEL
+# ============================================================================
+
+class Product(SQLModel, table=True):
+    """
+    Modelo de produtos da loja geek.
+    """
+    __tablename__ = "products"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    nome: str = Field(min_length=2, max_length=200, index=True)
     descricao: str = Field(max_length=2000)
-    preco: float = Field(
+    preco: Decimal = Field(
         default=0,
         max_digits=10,
         decimal_places=2,
         ge=0
     )
-    quantidade_estoque: int = Field(default=0, ge=0, alias="quantidade_estoque")
-    image_url: str = Field(default=None, max_length=500)
-    categoria_id: Optional[int] = Field(default=None, foreign_key="category.id")
-    categoria: Optional[Category] = Relationship(back_populates="products")
-    franquia: str = Field(default=None, max_length=120, index=True)
-
+    quantidade_estoque: int = Field(default=0, ge=0)
+    image_url: str = Field(max_length=500)
+    
+    # Relacionamento com Category
+    category_id: Optional[int] = Field(default=None, foreign_key="categories.id")
+    category: Optional[Category] = Relationship(back_populates="products")
+    
+    franquia: str = Field(max_length=100, index=True)
+    
+    # Campos de controle
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     def __repr__(self):
-        return f"<Produto(id={self.id}, nome='{self.nome}', preco={self.preco}, quantidade_estoque={self.quantidade_estoque})>"
-    
-#Schemas
+        return f"<Product {self.nome} - R$ {self.preco}>"
+
+
+# ============================================================================
+# SCHEMAS (Request/Response models)
+# ============================================================================
+
+# --- USER SCHEMAS ---
 
 class UserCreate(SQLModel):
     """Schema para criação de usuário (register)"""
@@ -65,6 +105,8 @@ class UserLogin(SQLModel):
     """Schema para login"""
     username: str
     password: str
+
+
 class UserResponse(SQLModel):
     """Schema de resposta (sem senha)"""
     id: int
@@ -78,20 +120,27 @@ class Token(SQLModel):
     """Schema de resposta de autenticação"""
     access_token: str
     token_type: str = "bearer"
+
+
 class TokenData(SQLModel):
     """Dados extraídos do token JWT"""
     username: Optional[str] = None
 
-# Schemas de categoria
+
+# --- CATEGORY SCHEMAS ---
 
 class CategoryCreate(SQLModel):
-    "Schema para criação de categoria"
-    name: str = Field(min_length=1, max_length=120)
-    description: Optional[str] = Field(default=None, max_length=255)
+    """Schema para criar categoria"""
+    name: str = Field(min_length=2, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=500)
+
+
 class CategoryUpdate(SQLModel):
-    "Schema para atualização de categoria"
-    name: Optional[str] = Field(min_length=1, max_length=120)
-    description: Optional[str] = Field(default=None, max_length=255)
+    """Schema para atualizar categoria"""
+    name: Optional[str] = Field(default=None, min_length=2, max_length=100)
+    description: Optional[str] = None
+
+
 class CategoryResponse(SQLModel):
     """Schema de resposta de categoria"""
     id: int
@@ -99,25 +148,22 @@ class CategoryResponse(SQLModel):
     description: Optional[str]
     slug: str
 
-# Schemas de produto
 
-class ProdutoCreate(SQLModel):
-    """Schema para criação de produto"""
-    nome: str = Field(min_length=1, max_length=120)
+# --- PRODUCT SCHEMAS ---
+
+class ProductCreate(SQLModel):
+    """Schema para criar produto"""
+    nome: str = Field(min_length=2, max_length=200)
     descricao: str = Field(max_length=2000)
-    preco: float = Field(
-        default=0,
-        max_digits=10,
-        decimal_places=2,
-        ge=0
-    )
-    quantidade_estoque: int = Field(default=0, ge=0, alias="quantidade_estoque")
-    image_url: Optional[str] = Field(default=None, max_length=500)
-    categoria_id: int
-    franquia: Optional[str] = Field(default=None, max_length=120)
+    preco: Decimal = Field(gt=0, max_digits=10, decimal_places=2)
+    quantidade_estoque: int = Field(ge=0)
+    image_url: str = Field(max_length=500)
+    category_id: int
+    franquia: str = Field(max_length=100)
 
-class ProdutoUpdate(SQLModel):
-    """Schema para atualização de produto"""
+
+class ProductUpdate(SQLModel):
+    """Schema para atualizar produto (todos campos opcionais)"""
     nome: Optional[str] = Field(default=None, min_length=2, max_length=200)
     descricao: Optional[str] = Field(default=None, max_length=2000)
     preco: Optional[Decimal] = Field(default=None, gt=0, max_digits=10, decimal_places=2)
@@ -126,6 +172,7 @@ class ProdutoUpdate(SQLModel):
     category_id: Optional[int] = None
     franquia: Optional[str] = Field(default=None, max_length=100)
     is_active: Optional[bool] = None
+
 
 class ProductResponse(SQLModel):
     """Schema de resposta de produto com categoria"""
@@ -136,7 +183,7 @@ class ProductResponse(SQLModel):
     quantidade_estoque: int
     image_url: str
     franquia: str
-    category: Optional[CategoryResponse]
+    category: Optional[CategoryResponse] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
