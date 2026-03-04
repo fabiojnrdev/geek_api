@@ -120,3 +120,69 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 # Exception Handlers
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Handler customizado para tratamento de erros de validação
+    Retorna mensagens de erro mais confortantes
+    """
+    errors = []
+    for error in exc.errors():
+        errors.append({
+            "field" : "->".join(str(loc) for loc in error["loc"]),
+            "message": error["msg"],
+            "type": error["type"] 
+        })
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "detail": "Erro de validação",
+            "errors": errors
+        }
+    )
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Handler global para exceções não tratadas.
+    Em produção, não expõe detalhes internos
+    """
+    if settings.debug:
+        # Dentro do debug, mostra o erro por completo
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "detail": "Erro interno do servidor",
+                "error": str(exc),
+                "type": type(exc).__name__
+            }
+        )
+    else:
+        # Em produção, retorna mensagem genérica
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "detail": "Erro interno do servidor. Por favor, tente novamente."
+            }
+        )
+# Routers (Todas elas)
+
+# Autenticação
+app.include_router(
+    auth.router,
+    prefix="/api",
+    tags=["Autenticação"]
+)
+# Categorias
+app.include_router(
+    categories.router,
+    prefix="/api",
+    tags=["Categorias"]
+)
+# Produtos
+app.include_router(
+    products.router,
+    prefix="/api",
+    tags=["Produtos"]
+)
+
+# Root 
