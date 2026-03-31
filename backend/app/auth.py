@@ -98,9 +98,7 @@ def decode_access_token(token: str) -> TokenData:
         )
 # Autenticação do usuário
 
-def authenticate_user(session: Session,
-                      username: str,
-                      password: str) -> Optional[User]:
+def authenticate_user(session: Session, username: str, password: str) -> Optional[User]:
     """ Autentica um usuário verificando o username e a senha.
     Args:
         session: Sessão do banco de dados
@@ -111,8 +109,8 @@ def authenticate_user(session: Session,
         User se autenticado, None caso contrário
     """
     # Busca o usuário no banco de dados
-    statement = select(User).where(User.username == User)
-    user = Session.exec(statement).first()
+    statement = select(User).where(User.username == username)
+    user = session.exec(statement).first()
     # Verifica se o usuário existe e se a senha está correta
     if not User or not verify_password(password, user.hashed_password):
         return None
