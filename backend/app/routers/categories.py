@@ -34,8 +34,8 @@ def list_categories(
 ```
     """
     statement = select(Category).order_by(Category.name).offset(pagination.skip).limit(pagination.limit)
-    total_statement = select(func.count()).select_from(Category.id)
-    total = session.exec(total_statement).scalar()
+    total_statement = select(func.count(Category.id)).select_from(Category)
+    total = session.exec(total_statement).one()
     categories = session.exec(
         statement.offset(pagination.skip).limit(pagination.limit)
     ).all()
@@ -193,12 +193,10 @@ def update_category(
     if "name" in update_data and update_data["name"] != category.name:
         # Valida se novo nome é único
         validate_unique_category_name(
-            update_data["name"],
-            session,
+            session=session,
+            name=update_data["name"],
             exclude_id=category.id
         )
-        
-        # Gera novo slug
         new_slug = generate_slug(update_data["name"])
         
         # Valida se novo slug é único

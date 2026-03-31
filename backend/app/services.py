@@ -1,7 +1,7 @@
 from typing import List, Optional
 from sqlmodel import Session, select
 from .models import Produto
-from .schemas import ProdutoCreate, ProdutoUpdate
+from .routers import ProdutoCreate, ProdutoUpdate
 
 class ProdutoService:
     def __init__(self, session: Session):
