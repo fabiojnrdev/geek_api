@@ -80,7 +80,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = D
             detail="Username ou senha incorretos",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    # Verifica se o usuáario é ativo
+    # Verifica se o usuário é ativo
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
