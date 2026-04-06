@@ -6,7 +6,7 @@
 #   4. decode_access_token: settings.SECRET_KEY → settings.secret_key
 #   5. create_access_token_for_user: settings.ACCESS_TOKEN_EXPIRE_MINUTES → lowercase
 
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -36,7 +36,7 @@ def get_password_hash(password: str) -> str:
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (
+    expire = datetime.now(timezone.utc) + (
         expires_delta if expires_delta
         else timedelta(minutes=settings.access_token_expire_minutes)   # ✅ FIX: lowercase
     )

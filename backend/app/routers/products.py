@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select, func, or_
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from app.database import get_session
@@ -318,7 +318,7 @@ def update_product(
         setattr(product, key, value)
     
     # Atualiza timestamp
-    product.updated_at = datetime.utcnow()
+    product.updated_at = datetime.now(timezone.utc)
     
     session.add(product)
     session.commit()
@@ -389,7 +389,7 @@ def update_stock(
         )
     
     product.quantidade_estoque = new_stock
-    product.updated_at = datetime.utcnow()
+    product.updated_at = datetime.now(timezone.utc)
     
     session.add(product)
     session.commit()
@@ -420,8 +420,7 @@ def toggle_product_active(
     - Útil para "ocultar" produtos sem deletá-los
     """
     product.is_active = not product.is_active
-    product.updated_at = datetime.utcnow()
-    
+    product.updated_at = datetime.now(timezone.utc)
     session.add(product)
     session.commit()
     session.refresh(product)
