@@ -1,150 +1,155 @@
-# app/auth.py — CORRIGIDO
-# Bugs originais corrigidos:
-#   1. authenticate_user: `if not User:` → `if not user:`
-#   2. authenticate_user: query usava `User` (classe) em vez de `user` (instância)
-#   3. create_access_token: settings attributes usam lowercase (pydantic-settings)
-#   4. decode_access_token: settings.SECRET_KEY → settings.secret_key
-#   5. create_access_token_for_user: settings.ACCESS_TOKEN_EXPIRE_MINUTES → lowercase
 
-from datetime import timedelta, datetime, timezone
-from typing import Optional
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from sqlmodel import Session, select
-from app.config import settings
-from app.models import User, TokenData
+# FIX BUG-B3: Docstring de register_json tinha string não-fechada causando SyntaxError.
+
+from datetime import timedelta
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlmodel import Session
+
 from app.database import get_session
+from app.models import User, UserCreate, UserLogin, UserResponse, Token
+from app.auth import (
+    authenticate_user,
+    create_access_token,
+    create_user,
+    get_current_active_user,
+    get_user_by_username,
+    get_user_by_email,
+    get_password_hash,
+)
+from app.config import settings
 
-# ── Configuração de segurança ────────────────────────────────
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
-
-
-# ── Password hashing ─────────────────────────────────────────
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-# ── JWT ───────────────────────────────────────────────────────
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (
-        expires_delta if expires_delta
-        else timedelta(minutes=settings.access_token_expire_minutes)   # ✅ FIX: lowercase
-    )
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)  # ✅ FIX
+router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 
-def decode_access_token(token: str) -> TokenData:
-    try:
-        payload = jwt.decode(
-            token,
-            settings.secret_key,       # ✅ FIX: lowercase
-            algorithms=[settings.algorithm]  # ✅ FIX
-        )
-        username: str = payload.get("sub")
-        if username is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token inválido",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        return TokenData(username=username)
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido ou expirado",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def register(user_create: UserCreate, session: Session = Depends(get_session)):
+    """Registra um novo usuário admin."""
+    if get_user_by_username(session, user_create.username):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username já está em uso")
+    if get_user_by_email(session, user_create.email):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email já está em uso")
+    return create_user(session, user_create.username, user_create.email, user_create.password)
 
 
-# ── Autenticação ─────────────────────────────────────────────
-
-def authenticate_user(session: Session, username: str, password: str) -> Optional[User]:
-    statement = select(User).where(User.username == username)
-    user = session.exec(statement).first()
-    if not user:                                          # ✅ FIX: era `if not User:`
-        return None
-    if not verify_password(password, user.hashed_password):
-        return None
-    return user
-
-
-# ── FastAPI Dependencies ──────────────────────────────────────
-
-async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+@router.post("/login", response_model=Token)
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
     session: Session = Depends(get_session),
-) -> User:
-    token_data = decode_access_token(token)
-    statement = select(User).where(User.username == token_data.username)
-    user = session.exec(statement).first()
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuário não encontrado",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return user
+):
+    """
+    Login via OAuth2 form-data (compatível com Swagger UI).
 
-
-async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
-    if not current_user.is_active:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuário inativo")
-    return current_user
-
-
-# ── Helpers ───────────────────────────────────────────────────
-
-def get_user_by_username(session: Session, username: str) -> Optional[User]:
-    return session.exec(select(User).where(User.username == username)).first()
-
-
-def get_user_by_email(session: Session, email: str) -> Optional[User]:
-    return session.exec(select(User).where(User.email == email)).first()
-
-
-def create_user(session: Session, username: str, email: str, password: str) -> User:
-    if get_user_by_username(session, username):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username já existe")
-    if get_user_by_email(session, email):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email já existe")
-
-    new_user = User(
-        username=username,
-        email=email,
-        hashed_password=get_password_hash(password),
-    )
-    session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
-    return new_user
-
-
-def create_access_token_for_user(user: User) -> str:
-    expires = timedelta(minutes=settings.access_token_expire_minutes)  # ✅ FIX: lowercase
-    return create_access_token(data={"sub": user.username}, expires_delta=expires)
-
-
-def authenticate_and_get_token(session: Session, username: str, password: str) -> str:
-    user = authenticate_user(session, username, password)
+    Corpo: `username=admin&password=senha123` (x-www-form-urlencoded)
+    """
+    user = authenticate_user(session, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Username ou senha incorretos",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return create_access_token_for_user(user)
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuário inativo")
+
+    token = create_access_token(
+        data={"sub": user.username},
+        expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
+    )
+    return {"access_token": token, "token_type": "bearer"}
 
 
-def register_user(session: Session, username: str, email: str, password: str) -> User:
-    return create_user(session, username, email, password)
+@router.post("/login-json", response_model=Token)
+def login_json(credentials: UserLogin, session: Session = Depends(get_session)):
+    """
+    Login via JSON (para uso no frontend).
+
+    ```json
+    { "username": "admin", "password": "senha123" }
+    ```
+    """
+    user = authenticate_user(session, credentials.username, credentials.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Username ou senha incorretos",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuário inativo")
+
+    token = create_access_token(
+        data={"sub": user.username},
+        expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
+    )
+    return {"access_token": token, "token_type": "bearer"}
+
+
+@router.post("/register-json", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def register_json(user_create: UserCreate, session: Session = Depends(get_session)):
+    """
+    Registro via JSON.
+
+    ```json
+    { "username": "novo_usuario", "email": "user@example.com", "password": "senha123" }
+    ```
+    """
+    if get_user_by_username(session, user_create.username):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username já está em uso")
+    if get_user_by_email(session, user_create.email):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email já está em uso")
+    return create_user(session, user_create.username, user_create.email, user_create.password)
+
+
+@router.get("/me", response_model=UserResponse)
+def get_current_user_info(current_user: User = Depends(get_current_active_user)):
+    """Retorna dados do usuário autenticado."""
+    return current_user
+
+
+@router.put("/me", response_model=UserResponse)
+def update_current_user(
+    email: str = None,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+):
+    """Atualiza email do usuário autenticado."""
+    if email:
+        existing = get_user_by_email(session, email)
+        if existing and existing.id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email já está em uso")
+        current_user.email = email
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    return current_user
+
+
+@router.post("/change-password", status_code=status.HTTP_200_OK)
+def change_password(
+    current_password: str,
+    new_password: str,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+):
+    """Altera a senha do usuário autenticado."""
+    if not authenticate_user(session, current_user.username, current_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Senha atual incorreta")
+    if len(new_password) < 6:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nova senha deve ter pelo menos 6 caracteres")
+    current_user.hashed_password = get_password_hash(new_password)
+    session.add(current_user)
+    session.commit()
+    return {"message": "Senha alterada com sucesso"}
+
+
+@router.delete("/me", status_code=status.HTTP_200_OK)
+def deactivate_account(
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+):
+    """Desativa a conta do usuário autenticado (soft delete)."""
+    current_user.is_active = False
+    session.add(current_user)
+    session.commit()
+    return {"message": "Conta desativada com sucesso"}
