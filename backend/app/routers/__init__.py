@@ -1,1 +1,1 @@
-# Package de roteadores do aplicativo\n# MÛdulos de roteadores s„o importados individualmente em app.main.
+# Package de roteadores do aplicativo\n# M√≥dulos de roteadores s√£o importados individualmente em app.main.
