@@ -4,8 +4,9 @@
 //   '../../types' → '../types' (relativo a src/)
 
 import React from 'react';
-import { Badge, Button } from '../ui';
-import type { Product } from '../../types';
+import { Badge, Button } from '../components/ui';
+import type { Product } from '../types';
+
 interface ProductCardProps {
   product: Product;
   onEdit?: (p: Product) => void;
