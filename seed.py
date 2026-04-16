@@ -13,7 +13,7 @@ O que faz:
 """
 
 from decimal import Decimal
-from sqlmodel import Session, select
+from sqlmodel import Session, delete, select
 from app.database import engine, create_db_and_tables
 from app.models import User, Category, Product
 from app.auth import get_password_hash
@@ -27,9 +27,9 @@ def clear_database(session: Session):
     print("🗑️  Limpando banco de dados...")
     
     # Deleta na ordem correta (relacionamentos)
-    session.query(Product).delete()
-    session.query(Category).delete()
-    session.query(User).delete()
+    session.exec(delete(Product))
+    session.exec(delete(Category))
+    session.exec(delete(User))
     
     session.commit()
     print("✅ Banco de dados limpo!")

@@ -12,11 +12,12 @@ from app.models import User, Category, Product
 # DATABASE DEPENDENCIES
 # ============================================================================
 
-def get_db() -> Session:
+def get_db(session: Session = Depends(get_session)) -> Session:
     """
     Alias para get_session (mais intuitivo).
+    Uso correto em FastAPI: Depends(get_db)
     """
-    return Depends(get_session)
+    return session
 
 
 # ============================================================================

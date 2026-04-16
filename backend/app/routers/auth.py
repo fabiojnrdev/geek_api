@@ -142,15 +142,22 @@ def login_json(
 @router.post("/register-json", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register_json(user_create: UserCreate, session: Session = Depends(get_session)):
     """ Endpoint para registrar um novo usuário usando JSON.
-    
+
     **Corpo da requisição (JSON):**
     ```json
     {
         "username": "novo_usuario",
-        "email": "
-        "password: "senha123"
-        }
-        """
+        "email": "usuario@example.com",
+        "password": "senha123"
+    }
+    ```
+
+    **Retorna:**
+    - Usuário criado com sucesso
+
+    **Erros:**
+    - 400: Username ou email já em uso
+    """
     if get_user_by_username(session, user_create.username):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

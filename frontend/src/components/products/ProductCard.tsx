@@ -1,11 +1,9 @@
 // src/components/products/ProductCard.tsx
-// FIX BUG-F1: Caminhos de import corrigidos:
-//   '../ui'     → '../components/ui'  (relativo a src/)
-//   '../../types' → '../types' (relativo a src/)
+// FIX BUG-F1: Caminhos de import corrigidos para a estrutura de pastas atual
 
 import React from 'react';
-import { Badge, Button } from '../components/ui';
-import type { Product } from '../types';
+import { Badge, Button } from '../ui';
+import type { Product } from '../../types';
 
 interface ProductCardProps {
   product: Product;

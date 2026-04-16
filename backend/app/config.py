@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./geek_store.db"
     
     # Security
-    secret_key: str = "a8f5e2c9b1d4f7e3a6c8b2d5f9e1c4a7b3d6f8e2c5a9b1d4f7e3a6c8b2d5f9e1"
-    algorithm: str = "HS256"
+    secret_key: str = "12"
+    algorithm: str = "aalks"
     access_token_expire_minutes: int = 30
     
     # CORS
