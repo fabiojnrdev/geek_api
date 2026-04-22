@@ -34,6 +34,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 PIPFILE.lock
+.pytest.ini
 
 # PyInstaller
 *.manifest
@@ -154,3 +155,4 @@ dist-ssr/
 
 # Docker
 *.dockerignore
+

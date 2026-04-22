@@ -1,13 +1,13 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { LoginPage } from './src/pages/LoginPage';
-import { RegisterPage } from './src/pages/RegisterPage';
-import { DashboardLayout } from './src/components/layout/DashboardLayout';
-import { ProtectedRoute } from './src/components/auth/ProtectedRoute';
-import { DashboardPage } from './src/pages/DashboardPage';
-import { ProductsPage } from './src/pages/ProductsPage';
-import { CategoriesPage } from './src/pages/CategoriesPage';
-import { ProfilePage } from './src/pages/ProfilePage';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { DashboardLayout } from './components/layout/DashboardLayout';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { DashboardPage } from './pages/DashboardPage';
+import { ProductsPage } from './pages/ProductsPage';
+import { CategoriesPage } from './pages/CategoriesPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 export const routes = [
   { path: '/login', element: <LoginPage /> },

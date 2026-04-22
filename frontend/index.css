@@ -20,28 +20,11 @@
     min-height: 100vh;
   }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: #18181b;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #3f3f46;
-    border-radius: 3px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #7c3aed;
-  }
-
-  ::selection {
-    background: #7c3aed33;
-    color: #c4b5fd;
-  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #18181b; }
+  ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #7c3aed; }
+  ::selection { background: #7c3aed33; color: #c4b5fd; }
 }
 
 @layer utilities {
@@ -51,13 +34,6 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
-
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
 }
